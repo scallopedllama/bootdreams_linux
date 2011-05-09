@@ -7,7 +7,7 @@
 
 // Global variables
 
-unsigned long IS_DJ_300780;
+unsigned long temp_value;
 
 
 /////////////////////////////////////////////////////////////////////////////
@@ -20,13 +20,17 @@ unsigned char filename_length;
 unsigned long track_mode;
 
     fseek(fsource, header_position, SEEK_SET);
-    fread(&IS_DJ_300780, 4, 1, fsource);
-    if (IS_DJ_300780 != 0)
+    fread(&temp_value, 4, 1, fsource);
+    if (temp_value != 0)
        fseek(fsource, 8, SEEK_CUR); // extra data (DJ 3.00.780 and up)
     fseek(fsource, 24, SEEK_CUR);
     fread(&filename_length, 1, 1, fsource);
     fseek(fsource, filename_length, SEEK_CUR);
-    fseek(fsource, 39, SEEK_CUR);
+    fseek(fsource, 19, SEEK_CUR);
+    fread(&temp_value, 4, 1, fsource);
+       if (temp_value == 0x80000000)
+          fseek(fsource, 8, SEEK_CUR); // DJ4
+    fseek(fsource, 16, SEEK_CUR);
     fread(&track_mode, 4, 1, fsource);
     fseek(fsource, header_position, SEEK_SET);
     return (track_mode);
@@ -42,8 +46,8 @@ void CDI_read_track (FILE *fsource, image_s *image, track_s *track)
      char TRACK_START_MARK[10] = { 0, 0, 0x01, 0, 0, 0, 0xFF, 0xFF, 0xFF, 0xFF };
      char current_start_mark[10];
 
-         fread(&IS_DJ_300780, 4, 1, fsource);
-         if (IS_DJ_300780 != 0)
+         fread(&temp_value, 4, 1, fsource);
+         if (temp_value != 0)
             fseek(fsource, 8, SEEK_CUR); // extra data (DJ 3.00.780 and up)
 
          fread(&current_start_mark, 10, 1, fsource);
@@ -55,7 +59,13 @@ void CDI_read_track (FILE *fsource, image_s *image, track_s *track)
          fseek(fsource, 4, SEEK_CUR);
          fread(&track->filename_length, 1, 1, fsource);
          fseek(fsource, track->filename_length, SEEK_CUR);
-         fseek(fsource, 25, SEEK_CUR);
+         fseek(fsource, 11, SEEK_CUR);
+         fseek(fsource, 4, SEEK_CUR);
+         fseek(fsource, 4, SEEK_CUR);
+         fread(&temp_value, 4, 1, fsource);
+            if (temp_value == 0x80000000)
+               fseek(fsource, 8, SEEK_CUR); // DJ4
+         fseek(fsource, 2, SEEK_CUR);
          fread(&track->pregap_length, 4, 1, fsource);
          fread(&track->length, 4, 1, fsource);
          fseek(fsource, 6, SEEK_CUR);
@@ -77,9 +87,13 @@ void CDI_read_track (FILE *fsource, image_s *image, track_s *track)
          if (track->mode > 2) error_exit(ERR_GENERIC, "Unsupported format: Track mode not supported");
 
          fseek(fsource, 29, SEEK_CUR);
-         if (image->version == CDI_V3) fseek(fsource, 9, SEEK_CUR);
-         if (IS_DJ_300780 != 0)
-             fseek(fsource, 78, SEEK_CUR); // extra data (DJ 3.00.780 and up)
+         if (image->version != CDI_V2)
+            {
+            fseek(fsource, 5, SEEK_CUR);
+            fread(&temp_value, 4, 1, fsource);
+            if (temp_value == 0xffffffff)
+                fseek(fsource, 78, SEEK_CUR); // extra data (DJ 3.00.780 and up)
+            }
 }
 
 
@@ -87,7 +101,7 @@ void CDI_skip_next_session (FILE *fsource, image_s *image)
 {
      fseek(fsource, 4, SEEK_CUR);
      fseek(fsource, 8, SEEK_CUR);
-     if (image->version == CDI_V3) fseek(fsource, 1, SEEK_CUR);
+     if (image->version != CDI_V2) fseek(fsource, 1, SEEK_CUR);
 }
 
 void CDI_get_tracks (FILE *fsource, image_s *image)
@@ -113,7 +127,11 @@ void CDI_init (FILE *fsource, image_s *image, char *fsourcename)
 void CDI_get_sessions (FILE *fsource, image_s *image)
 {
 #ifndef DEBUG_CDI
-     fseek(fsource, image->header_offset, SEEK_SET);
+     if (image->version == CDI_V35)
+        fseek(fsource, (image->length - image->header_offset), SEEK_SET);
+     else
+        fseek(fsource, image->header_offset, SEEK_SET);
+
 #else
      fseek(fsource, 0L, SEEK_SET);
 #endif

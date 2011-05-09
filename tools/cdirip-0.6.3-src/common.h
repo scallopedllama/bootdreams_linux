@@ -13,7 +13,7 @@
 
 /* For Debug only! */
 
-//#define DEBUG_CDI
+// #define DEBUG_CDI
 
 
 
@@ -51,6 +51,5 @@ typedef struct track_s
 /* Functions */
 
 void error_exit(long errcode, char *string);
-
 
 #endif

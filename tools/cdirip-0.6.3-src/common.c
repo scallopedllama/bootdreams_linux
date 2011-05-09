@@ -7,8 +7,6 @@
 #endif
 #include "common.h"
 
-
-
 void error_exit(long errcode, char *string)
 {
 

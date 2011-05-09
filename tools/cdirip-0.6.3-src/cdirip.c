@@ -11,6 +11,7 @@
 #include "cdirip.h"
 #include "buffer.h"
 #include "cdi.h"
+#include "audio.h"
 
 // Linux add-ons by Pedro Melo
 
@@ -47,13 +48,17 @@ track.position               = 0;
 
 // Opciones
 
-printf("CDIrip 0.6 - (C) 2001 by DeXT\n\n");
+printf("CDIrip - (C) 2004 by DeXT/Lawrence Williams\n\n");
 
 flags.ask_for_image = true;
 flags.ask_for_dest_path = true;
 
+opts.audio = WAV_FORMAT;
+
 #ifndef _WIN32
 opts.convert = ISO_FORMAT;  // Linux only!
+#else
+opts.convert = DEFAULT_FORMAT;
 #endif
 
 if (argc >= 2)
@@ -68,7 +73,11 @@ if (argc >= 2)
       {
       if (!strcasecmp(argv[i]+1,"iso"    )) opts.convert   = ISO_FORMAT;
       if (!strcasecmp(argv[i]+1,"bin"    )) opts.convert   = BIN_FORMAT;
-      if (!strcasecmp(argv[i]+1,"raw"    )) opts.rawaudio  = true;
+      if (!strcasecmp(argv[i]+1,"mac"    )) opts.convert   = MAC_FORMAT; // ISO/2056
+      if (!strcasecmp(argv[i]+1,"raw"    )) opts.audio     = RAW_FORMAT;
+      if (!strcasecmp(argv[i]+1,"cda"    )) opts.audio     = CDA_FORMAT;
+      if (!strcasecmp(argv[i]+1,"wav"    )) opts.audio     = WAV_FORMAT;
+      if (!strcasecmp(argv[i]+1,"aiff"   )) opts.audio     = AIFF_FORMAT;
       if (!strcasecmp(argv[i]+1,"info"   )) opts.showinfo  = true;
       if (!strcasecmp(argv[i]+1,"cut"    )) opts.cutfirst  = true;
       if (!strcasecmp(argv[i]+1,"cutall" )) opts.cutall    = true;
@@ -78,7 +87,7 @@ if (argc >= 2)
       if (!strcasecmp(argv[i]+1,"pregap" )) opts.pregap    = true;
 
       if (!strcasecmp(argv[i]+1,"cdrecord"  )) { opts.cutall = true; opts.convert = ISO_FORMAT; }
-      if (!strcasecmp(argv[i]+1,"winoncd"   )) { opts.cutall = true; opts.convert = ISO_FORMAT; opts.rawaudio = true; }
+      if (!strcasecmp(argv[i]+1,"winoncd"   )) { opts.cutall = true; opts.convert = ISO_FORMAT; opts.audio = RAW_FORMAT; }
       if (!strcasecmp(argv[i]+1,"fireburner")) { opts.cutall = true; opts.convert = BIN_FORMAT; }
       }
      else if (i == 1) flags.ask_for_image = false;
@@ -127,12 +136,13 @@ printf("Found image file. Opening...\n");
 CDI_init (fsource, &image, filename);
 
 if (image.version == CDI_V2)
-   printf("This is a v2 image\n");
+   printf("This is a v2.0 image\n");
+else if (image.version == CDI_V3)
+   printf("This is a v3.0 image\n");
+else if (image.version == CDI_V35)
+   printf("This is a v3.5 image\n");
 else
-   if (image.version == CDI_V3)
-      printf("This is a v3 image\n");
-   else
-      error_exit(ERR_GENERIC, "Unsupported image version");
+   error_exit(ERR_GENERIC, "Unsupported image version");
 
 // Cambiar directorio de destino
 
@@ -165,6 +175,20 @@ if (!opts.showinfo)
       }
 #endif
    }
+
+// Sets proper audio format
+
+switch (opts.audio)
+       {
+       case AIFF_FORMAT:
+       case CDA_FORMAT:
+            opts.swap = opts.swap ? false : true; // invert swap switch for AIFF/CDA (MSB by default)
+            break;
+       case WAV_FORMAT:
+       case RAW_FORMAT:
+       default:
+            break;
+       }
 
 // Start parsing image
 
@@ -217,7 +241,7 @@ while(image.remaining_sessions > 0)
           {
           if (ask_type(fsource, image.header_position) == 2)
              {
-             if (opts.convert == ISO_FORMAT)
+             if (opts.convert == ISO_FORMAT || opts.convert == MAC_FORMAT)
                 flags.create_cuesheet = false;  // Si "/iso" y Modo2 -> no cuesheet
              else
                 {
@@ -274,7 +298,7 @@ while(image.remaining_sessions > 0)
                case 0 : printf("Audio/"); break;
                case 1 : printf("Mode1/"); break;
                case 2 :
-               default: printf("Mode2/");
+               default: printf("Mode2/"); break;
                }
          printf("%d  ",track.sector_size);
          if (opts.pregap)
@@ -298,7 +322,7 @@ while(image.remaining_sessions > 0)
          else if (!(track.mode != 0 && opts.fulldata))
             {
             flags.do_cut = ((opts.cutall) ? 2 : 0) +
-                          ((opts.cutfirst && track.global_current_track == 1) ? 2 : 0);
+                           ((opts.cutfirst && track.global_current_track == 1) ? 2 : 0);
             }
          else flags.do_cut = 0;
 
@@ -310,6 +334,7 @@ while(image.remaining_sessions > 0)
                    {
                    case BIN_FORMAT: flags.do_convert = false; break;
                    case ISO_FORMAT: flags.do_convert = true; break;
+                   case MAC_FORMAT: flags.do_convert = true; break;
                    case DEFAULT_FORMAT:
                    default: if (track.mode == 1)
                                flags.do_convert = true;          // Modo1/2352 -> ISO
@@ -318,6 +343,7 @@ while(image.remaining_sessions > 0)
                                   flags.do_convert = true;       // Modo2 2ª sesion -> ISO
                                else
                                   flags.do_convert = false;      // Modo2 1ª sesion -> BIN (obsoleto)
+                            break;
                    }
          else
             flags.do_convert = false;
@@ -417,10 +443,22 @@ struct buffer_s write_buffer;
 
      if (track->mode == 0)
         {
-        if (opts->rawaudio)
-              sprintf(filename,STR_TAUDIO_RAW_FILENAME,track->global_current_track);
-        else
-              sprintf(filename,STR_TAUDIO_WAV_FILENAME,track->global_current_track);
+        switch (opts->audio)
+               {
+               case RAW_FORMAT:
+                    sprintf(filename,STR_TAUDIO_RAW_FILENAME,track->global_current_track);
+                    break;
+               case CDA_FORMAT:
+                    sprintf(filename,STR_TAUDIO_CDA_FILENAME,track->global_current_track);
+                    break;
+               case AIFF_FORMAT:
+                    sprintf(filename,STR_TAUDIO_AIFF_FILENAME,track->global_current_track);
+                    break;
+               case WAV_FORMAT:
+               default:
+                    sprintf(filename,STR_TAUDIO_WAV_FILENAME,track->global_current_track);
+                    break;
+               }
         }
      else
         {
@@ -456,24 +494,52 @@ struct buffer_s write_buffer;
          printf("[ISO]\n");
      else
          printf("\n");
-
+/*
+     if (track->mode == 2)
+        switch (track->sector_size) {
+               case 2352: sector_type = MODE2_2352; break;
+               case 2336: sector_type = MODE2_2336; break;
+               case 2056: sector_type = MODE2_2056; break;
+               case 2048: sector_type = MODE2_2048; break;
+               }
+     else if (track->mode == 1)
+        switch (track->sector_size) {
+               case 2352: sector_type = MODE1_2352; break;
+               case 2048: sector_type = MODE1_2048; break;
+               }
+     else if (track->mode == 0)
+        switch (track->sector_size) {
+               case 2352: sector_type = MODE0_2352; break;
+               }
+*/
      if (flags->do_convert) {
 	if (track->mode == 2) {
 		switch (track->sector_size) {
 			case 2352: header_length = 24; break;
 			case 2336: header_length =  8; break;
-			default:   header_length =  0;
+			default:   header_length =  0; break;
 			}
 	} else {
 		switch (track->sector_size) {
 			case 2352: header_length = 16; break;
 			case 2048:
-			default:   header_length =  0;
+			default:   header_length =  0; break;
 			}
 	}
      }
 
-     if (track->mode == 0 && !opts->rawaudio) writewavheader(fdest, track_length);
+     if (track->mode == 0)
+        switch (opts->audio)
+               {
+               case WAV_FORMAT:
+                    writewavheader(fdest, track_length);
+                    break;
+               case AIFF_FORMAT:
+                    writeaiffheader(fdest, track_length);
+                    break;
+               default:
+                    break;
+               }
 
      for(i = 0; i < track_length; i++)
         {
@@ -492,6 +558,7 @@ struct buffer_s write_buffer;
 
               if (flags->do_convert)
                  {
+                 if (opts->convert == MAC_FORMAT) BufWrite("\0\0\x08\0\0\0\x08\0", 8, &write_buffer);
                  all_fine = BufWrite (buffer + header_length, 2048, &write_buffer);
                  }
               else
@@ -572,24 +639,43 @@ void savecuesheet(FILE *fcuesheet, image_s *image, track_s *track, opts_s *opts,
 {
 
 char track_format_string[10];
+char audio_file_ext[5];
 
      if (opts->swap)
         strcpy(track_format_string,"MOTOROLA");
      else
         strcpy(track_format_string,"BINARY");
 
+     switch (opts->audio)
+            {
+            case AIFF_FORMAT:
+                 strcpy(audio_file_ext,"aiff");
+                 break;
+            case CDA_FORMAT:
+                 strcpy(audio_file_ext,"cda");
+                 break;
+            case RAW_FORMAT:
+                 strcpy(audio_file_ext,"raw");
+                 break;
+            case WAV_FORMAT:
+            default:
+                 strcpy(audio_file_ext,"wav");
+                 break;
+            }
+
      if (track->mode == 0)
         {
-        if (opts->rawaudio)
-              fprintf(fcuesheet, "FILE TAUDIO%02d.RAW %s\r\n"
+        if (opts->audio == WAV_FORMAT)
+              fprintf(fcuesheet, "FILE taudio%02d.wav WAVE\r\n"
                                  "  TRACK %02d AUDIO\r\n",
                                  track->global_current_track,
-                                 track_format_string,
                                  track->number);
         else
-              fprintf(fcuesheet, "FILE TAUDIO%02d.WAV WAVE\r\n"
+              fprintf(fcuesheet, "FILE taudio%02d.%s %s\r\n"
                                  "  TRACK %02d AUDIO\r\n",
                                  track->global_current_track,
+                                 audio_file_ext,
+                                 track_format_string,
                                  track->number);
 
         if (track->global_current_track > 1 && !opts->pregap && track->pregap_length > 0)
@@ -599,13 +685,13 @@ char track_format_string[10];
      else
         {
         if (flags->save_as_iso)
-              fprintf(fcuesheet, "FILE TDATA%02d.ISO BINARY\r\n"
+              fprintf(fcuesheet, "FILE tdata%02d.iso BINARY\r\n"
                                  "  TRACK %02d MODE%d/2048\r\n",
                                  track->global_current_track,
                                  track->number,
                                  track->mode);
         else
-              fprintf(fcuesheet, "FILE TDATA%02d.BIN BINARY\r\n"
+              fprintf(fcuesheet, "FILE tdata%02d.bin BINARY\r\n"
                                  "  TRACK %02d MODE%d/%d\r\n",
                                  track->global_current_track,
                                  track->number,
@@ -618,41 +704,6 @@ char track_format_string[10];
      if (opts->pregap && track->mode != 0 && image->remaining_tracks > 1) // instead of saving pregap
         fprintf(fcuesheet, "  POSTGAP 00:02:00\r\n");
 
-}
-
-
-//////////////////////////////////////////////////////////////////////////////
-
-
-void writewavheader(FILE *fdest, long track_length)
-{
-
-unsigned long      wTotal_length;
-unsigned long      wData_length;
-unsigned long      wHeaderLength = 16;
-unsigned short int wFormat = 1;
-unsigned short int wChannels = 2;
-unsigned long      wSampleRate = 44100;
-unsigned long      wBitRate = 176400;
-unsigned short int wBlockAlign = 4;
-unsigned short int wBitsPerSample = 16;
-
-      wData_length = track_length*2352;
-      wTotal_length = wData_length + 8 + 16 + 12;
-
-      fwrite("RIFF", 4, 1, fdest);
-      fwrite(&wTotal_length, 4, 1, fdest);
-      fwrite("WAVE", 4, 1, fdest);
-      fwrite("fmt ", 4, 1, fdest);
-      fwrite(&wHeaderLength, 4, 1, fdest);
-      fwrite(&wFormat, 2, 1, fdest);
-      fwrite(&wChannels, 2, 1, fdest);
-      fwrite(&wSampleRate, 4, 1, fdest);
-      fwrite(&wBitRate, 4, 1, fdest);
-      fwrite(&wBlockAlign, 2, 1, fdest);
-      fwrite(&wBitsPerSample, 2, 1, fdest);
-      fwrite("data", 4, 1, fdest);
-      fwrite(&wData_length, 4, 1, fdest);
 }
 
 
@@ -679,7 +730,7 @@ char szFile[MAX_PATH];
      ofn.hwndOwner = hWnd;
      ofn.lpstrFile = szFile;
      ofn.nMaxFile = sizeof(szFile);
-     ofn.lpstrFilter = "DiscJuggler image (*.cdi)\0*.cdi\0All files (*.*)\0*.*\0\0";
+     ofn.lpstrFilter = "DiscJuggler image (*.cdi;*.cdr)\0*.cdi;*.cdr\0All files (*.*)\0*.*\0\0";
      ofn.nFilterIndex = 1;
      ofn.lpstrDefExt = "cdi";
      ofn.lpstrTitle = "Select CDI image to open...";

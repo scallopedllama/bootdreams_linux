@@ -3,6 +3,7 @@
 
 #define CDI_V2  0x80000004
 #define CDI_V3  0x80000005
+#define CDI_V35 0x80000006
 
 unsigned long ask_type(FILE *fsource, long header_position);
 void CDI_init (FILE *fsource, image_s *image, char *fsourcename);
