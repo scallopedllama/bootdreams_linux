@@ -22,9 +22,10 @@ import re
 
 # Help printing function
 def print_help():
-  print("Usage: " + sys.argv[0] + " Image_File.cdi [Write Speed] [/path/to/burner]")
+  print("Usage: " + sys.argv[0] + " Image_File.cdi [Write Speed] [Burner index]")
   print("Acceptable image formats are Discjuggler (CDI), ISO, and BIN/CUE.")
-  print("Write speed and burner path are optional. If omitted, the slowest speed and the first burner are used.")
+  print("Write speed and burner path are optional. If omitted, 2x speed and the first burner are used.")
+  print("The burner index is found by running 'cdrecord -scanbus'")
 
 # Asks user a yes / no question and quits if the user says no. Default question formatted to fit below a "WARNING: ... " string
 def ask_for_continue(question = "         Would you like to continue (Y/n)? "):
@@ -40,6 +41,19 @@ except IndexError:
   print("ERROR: No File Specified.")
   print_help()
   sys.exit(1)
+
+# Drive index
+try:
+  drive_index = sys.argv[3]
+except IndexError:
+  drive_index = 0
+
+# Burn Speed
+try:
+  burn_speed = sys.argv[2]
+except IndexError:
+  burn_speed = 2
+
 
 # See if user was trying to get help
 if string.lower(input_image) == "help" or string.lower(input_image) == "--help" or string.lower(input_image) == "-h":
@@ -95,9 +109,9 @@ if input_ext == "cdi":
   
   # Delete the temp dir if it already exists and create it again
   print("Clearing Temp Directory")
-  #if os.path.isdir('/tmp/bootdreams'):
-  #  shutil.rmtree('/tmp/bootdreams', True)
-  #os.mkdir('/tmp/bootdreams')
+  if os.path.isdir('/tmp/bootdreams'):
+    shutil.rmtree('/tmp/bootdreams', True)
+  os.mkdir('/tmp/bootdreams')
   
   # Rip the CDI
   print ("Ripping CDI")
@@ -105,17 +119,14 @@ if input_ext == "cdi":
   rip_options = "-iso"
   if session_data[0][0] != "Audio/2352":
     rip_options += " -cut -cutall"
-  #if subprocess.call(["cdirip", input_image, "/tmp/bootdreams", rip_options]) != 0:
-  #  print("ERROR: Cdirip failed to extract image data. Please check its output for more information.")
+  if subprocess.call(["cdirip", input_image, "/tmp/bootdreams", rip_options]) != 0:
+    print("ERROR: Cdirip failed to extract image data. Please check its output for more information.")
   
   # Burn the CD
   print ("Burning CD")
   print ("")
   index = 1
   for s in session_data:
-    # TODO: Fill in these variables: DRIE, SPEED
-    SPEED=""
-    DRIVE=""
     cdrecord_opts = []
     for t in s:
       if t == "Mode1/2048":
@@ -126,8 +137,8 @@ if input_ext == "cdi":
         cdrecord_opts += ["-audio", "/tmp/bootdreams/taudio" + str(index).zfill(2) + ".wav"]
       index += 1
       
-    # Call cdrecord
-    cdrecord_call = ["cdrecord", "-dev=" + DRIVE, "gracetime=2", "-v", "driveropts=burnfree", "speed=" + SPEED]
+    # Build options list for cdrecord
+    cdrecord_call = ["cdrecord", "-dev=" + str(drive_index), "gracetime=2", "-v", "driveropts=burnfree", "speed=" + str(burn_speed)]
     if s == session_data[-1]:
       cdrecord_call.append("-eject")
     else:
@@ -137,6 +148,7 @@ if input_ext == "cdi":
     else:
       cdrecord_call.append("-dao")
     cdrecord_call += cdrecord_opts
-    #subprocess.call(cdrecord_call)
-    print(cdrecord_call)
+    
+    # Burn the session
+    subprocess.call(cdrecord_call)
 
