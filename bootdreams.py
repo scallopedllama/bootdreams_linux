@@ -24,6 +24,11 @@ def print_help():
   print("Acceptable image formats are Discjuggler (CDI), ISO, and BIN/CUE.")
   print("Write speed and burner path are optional. If omitted, the slowest speed and the first burner are used.")
 
+# Asks user a yes / no question and quits if the user says no
+def ask_for_continue(question = "         Would you like to continue (Y/n)? "):
+  to_continue = string.lower(raw_input(question))
+  if to_continue != "" and to_continue[0] == 'n':
+    exit(1)
 
 
 # The file to process
@@ -82,8 +87,6 @@ if input_ext == "cdi":
   if session_data[0] == ["Mode2/2336", "Audio/2352"]:
     print("Warning: CDRecord cannot properly burn a data/data DiscJuggler image with CDDA.")
     print("         You can continuing anyway though it may be a coaster if there is very little space left in the image.")
-    to_continue = string.lower(raw_input("         Would you like to continue (Y/n)? "))
-    if to_continue != "" and to_continue[0] == 'n':
-      exit(1)
-      
+    ask_for_continue()
+  
   
