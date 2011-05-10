@@ -20,12 +20,21 @@ import shutil
 import re
 
 
+# Query wodim for burners
+# Oddly enough, wodim returns an error code if you have a burner but returns 0 if you don't.
+def query_burners():
+  try:
+    subprocess.check_output(['wodim', '--devices'], stderr=subprocess.STDOUT)
+    return []
+  except subprocess.CalledProcessError, (exception):
+    return re.findall("dev='(\S*)'", exception.output)
+
 # Help printing function
 def print_help():
   print ("Usage: " + sys.argv[0] + " Image_File.cdi [Write Speed] [/path/to/burner]")
   print ("Acceptable image formats are Discjuggler (CDI), ISO, and BIN/CUE.")
-  print ("Write speed and burner path are optional. If omitted, 2x speed and the first burner are used.")
-  print ("The burner path can be found by running 'wodim --devices', it should be like /dev/sdc0")
+  print ("Write speed and burner path are optional. If omitted, 2x speed and the burner at " + drive_path + " is used.")
+  print ("All burner paths can be found by running 'wodim --devices'.")
 
 # Asks user a yes / no question and quits if the user says no. Default question formatted to fit below a "WARNING: ... " string
 def ask_for_continue(question = "         Would you like to continue (Y/n)? "):
@@ -46,8 +55,11 @@ except IndexError:
 try:
   drive_path = sys.argv[3]
 except IndexError:
-  # TODO: Actually query wodim to get this value
-  drive_path = "/dev/scd0"
+  try:
+    drive_path = query_burners()[0]
+  except IndexError:
+    print ("Warning: No burner in system. A burner is obviously required.")
+    exit(1)
 
 # Burn Speed
 try:
@@ -75,7 +87,7 @@ input_ext = string.lower(input_image[-3:])
 
 # CDI FILE HANDLING
 if input_ext == "cdi":
-  print ("Going to burn a DiscJuggler image.")
+  print ("Going to burn DiscJuggler image " + input_image + " at " + burn_speed + "x on burner at " + drive_path)
   # Get information about this cdi file
   cdi_info = subprocess.check_output(["cdirip", input_image, "-info"])
   
