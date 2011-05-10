@@ -95,18 +95,46 @@ if input_ext == "cdi":
   
   # Delete the temp dir if it already exists and create it again
   print("Clearing Temp Directory")
-  if os.path.isdir('/tmp/bootdreams'):
-    shutil.rmtree('/tmp/bootdreams', True)
-  os.mkdir('/tmp/bootdreams')
+  #if os.path.isdir('/tmp/bootdreams'):
+  #  shutil.rmtree('/tmp/bootdreams', True)
+  #os.mkdir('/tmp/bootdreams')
   
   # Rip the CDI
-  print("Ripping CDI")
-  print("")
+  print ("Ripping CDI")
+  print ("")
   rip_options = "-iso"
   if session_data[0][0] != "Audio/2352":
     rip_options += " -cut -cutall"
-  if subprocess.call(["cdirip", input_image, "/tmp/bootdreams", rip_options]) != 0:
-    print("ERROR: Cdirip failed to extract image data. Please check its output for more information.")
+  #if subprocess.call(["cdirip", input_image, "/tmp/bootdreams", rip_options]) != 0:
+  #  print("ERROR: Cdirip failed to extract image data. Please check its output for more information.")
   
-   
-  
+  # Burn the CD
+  print ("Burning CD")
+  print ("")
+  index = 1
+  for s in session_data:
+    # TODO: Fill in these variables: DRIE, SPEED
+    # TODO: Eject after last session
+    # TODO: windows version doesn't put multi on the last session
+    SPEED=""
+    DRIVE=""
+    cdrecord_opts = []
+    for t in s:
+      if t == "Mode1/2048":
+        cdrecord_opts += ["-data", "/tmp/bootdreams/tdata" + str(index).zfill(2) + ".iso"]
+      elif t == "Mode2/2336":
+        cdrecord_opts += ["-xa", "/tmp/bootdreams/tdata" + str(index).zfill(2) + ".iso"]
+      elif t == "Audio/2352":
+        cdrecord_opts += ["-audio", "/tmp/bootdreams/taudio" + str(index).zfill(2) + ".wav"]
+      index += 1
+      
+    # Call cdrecord
+    cdrecord_call = ["cdrecord", "-dev=" + DRIVE, "gracetime=2", "-v", "driveropts=burnfree", "speed=" + SPEED, "-multi"]
+    if "-xa" in cdrecord_opts or "-data" in cdrecord_opts:
+      cdrecord_call.append("-tao")
+    else:
+      cdrecord_call.append("-dao")
+    cdrecord_call += cdrecord_opts
+    #subprocess.call(cdrecord_call)
+    print(cdrecord_call)
+
