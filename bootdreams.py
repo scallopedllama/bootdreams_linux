@@ -14,6 +14,8 @@ import subprocess
 import string
 # To determine if file exits
 import os
+# For rmtree
+import shutil
 # Regular expressions
 import re
 
@@ -24,7 +26,7 @@ def print_help():
   print("Acceptable image formats are Discjuggler (CDI), ISO, and BIN/CUE.")
   print("Write speed and burner path are optional. If omitted, the slowest speed and the first burner are used.")
 
-# Asks user a yes / no question and quits if the user says no
+# Asks user a yes / no question and quits if the user says no. Default question formatted to fit below a "WARNING: ... " string
 def ask_for_continue(question = "         Would you like to continue (Y/n)? "):
   to_continue = string.lower(raw_input(question))
   if to_continue != "" and to_continue[0] == 'n':
@@ -58,13 +60,15 @@ input_ext = string.lower(input_image[-3:])
 
 # CDI FILE HANDLING
 if input_ext == "cdi":
-  
+  print("Going to burn a DiscJuggler image.")
   # Get information about this cdi file
   cdi_info = subprocess.check_output(["cdirip", input_image, "-info"])
   
   # Make a list containing lists of track types for each session.
   # First dimension is Session number, second is Track number
   session_data = []
+  
+  print("Getting Session and Track information")
   
   # Split the cdi_info string by the Session i has d track(s) string. Discard the first because it offers no data
   for i in re.split('Session \d+ has \d+ track\(s\)', cdi_info)[1:]:
@@ -89,4 +93,20 @@ if input_ext == "cdi":
     print("         You can continuing anyway though it may be a coaster if there is very little space left in the image.")
     ask_for_continue()
   
+  # Delete the temp dir if it already exists and create it again
+  print("Clearing Temp Directory")
+  if os.path.isdir('/tmp/bootdreams'):
+    shutil.rmtree('/tmp/bootdreams', True)
+  os.mkdir('/tmp/bootdreams')
+  
+  # Rip the CDI
+  print("Ripping CDI")
+  print("")
+  rip_options = "-iso"
+  if session_data[0][0] != "Audio/2352":
+    rip_options += " -cut -cutall"
+  if subprocess.call(["cdirip", input_image, "/tmp/bootdreams", rip_options]) != 0:
+    print("ERROR: Cdirip failed to extract image data. Please check its output for more information.")
+  
+   
   
