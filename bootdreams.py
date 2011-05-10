@@ -14,7 +14,8 @@ import subprocess
 import string
 # To determine if file exits
 import os
-
+# Regular expressions
+import re
 
 
 # Help printing function
@@ -56,5 +57,14 @@ if input_ext == "cdi":
   # Get information about this cdi file
   cdi_info = subprocess.check_output(["cdirip", input_image, "-info"])
   
+  # Make a list containing lists of track types for each session.
+  # First dimension is Session number, second is Track number
+  session_data = []
   
+  # Split the cdi_info string by the Session i has d track(s) string. Discard the first because it offers no data
+  for i in re.split('Session \d+ has \d+ track\(s\)', cdi_info)[1:]:
+    # Get all the track types in a list and append it to the list of session data
+    session_data.append(re.findall('Type: (\S*)', i))
+
+  print session_data
 
