@@ -33,7 +33,7 @@ def query_burners():
 def print_help():
   print ("Usage: " + sys.argv[0] + " Image_File.cdi [Write Speed] [/path/to/burner]")
   print ("Acceptable image formats are Discjuggler (CDI), ISO, and BIN/CUE.")
-  print ("Write speed and burner path are optional. If omitted, 2x speed and the burner at " + drive_path + " is used.")
+  print ("Write speed and burner path are optional. If omitted, lowest speed and the burner at " + drive_path + " is used.")
   print ("All burner paths can be found by running 'wodim --devices'.")
 
 # Asks user a yes / no question and quits if the user says no. Default question formatted to fit below a "WARNING: ... " string
@@ -43,13 +43,6 @@ def ask_for_continue(question = "         Would you like to continue (Y/n)? "):
     exit(1)
 
 
-# The file to process
-try:
-  input_image = sys.argv[1]
-except IndexError:
-  print ("ERROR: No File Specified.")
-  print_help()
-  sys.exit(1)
 
 # Drive index
 try:
@@ -61,11 +54,20 @@ except IndexError:
     print ("Warning: No burner in system. A burner is obviously required.")
     exit(1)
 
+# The file to process
+try:
+  input_image = sys.argv[1]
+except IndexError:
+  print ("ERROR: No File Specified.")
+  print_help()
+  sys.exit(1)
+
 # Burn Speed
 try:
   burn_speed = sys.argv[2]
 except IndexError:
-  burn_speed = 2
+  burn_speed = 0
+
 
 
 # See if user was trying to get help
@@ -169,3 +171,16 @@ if input_ext == "cdi":
       exit(1)
   
   print ("Image burn complete.")
+  
+  
+  
+elif input_ext = "iso":
+  # TODO: Isos have checkboxes for multisesion and record mode1 (?)
+  cdrecord_call = ['cdrecord', 'dev=' + str(drive_path), 'gracetime=2', '-v', 'driveropts=burnfree', 'speed=' + str(burn_speed), '-eject', '-tao']
+  if iso_multi = True:
+    cdrecord_call += ['-multi']
+  if iso_mode1 = True:
+    cdrecord_call += ['-data']
+  else:
+    cdrecord_call += ['-xa']
+  cdrecord_call += [input_image]
