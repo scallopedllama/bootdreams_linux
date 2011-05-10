@@ -65,6 +65,17 @@ if input_ext == "cdi":
   for i in re.split('Session \d+ has \d+ track\(s\)', cdi_info)[1:]:
     # Get all the track types in a list and append it to the list of session data
     session_data.append(re.findall('Type: (\S*)', i))
-
-  print session_data
-
+  
+  # Check for situations to warn the user about:
+  # More than 2 sessions:
+  if len(session_data) > 2:
+    print("Warning: CDI image has more than 2 sessions. Continuing anyway though this is untested.")
+  
+  # Unsupported session type
+  for s in session_data:
+    for t in s:
+      if not t in ["Mode1/2048", "Mode2/2336", "Audio/2352"]:
+        print("ERROR: Unsupported session type " + t + ". Only Mode1/2048, Mode2/2336, and Audio/2352 are supported.")
+        exit(1)
+  
+  
