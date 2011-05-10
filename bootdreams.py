@@ -175,7 +175,7 @@ if input_ext == "cdi":
   
   
 elif input_ext = "iso":
-  # TODO: Isos have checkboxes for multisesion and record mode1 (?)
+  # TODO: Isos have checkbox for multisesion and menu option for record mode: mode1 or mode 2 form 1
   cdrecord_call = ['cdrecord', 'dev=' + str(drive_path), 'gracetime=2', '-v', 'driveropts=burnfree', 'speed=' + str(burn_speed), '-eject', '-tao']
   if iso_multi = True:
     cdrecord_call += ['-multi']
