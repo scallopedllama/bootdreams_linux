@@ -22,10 +22,10 @@ import re
 
 # Help printing function
 def print_help():
-  print ("Usage: " + sys.argv[0] + " Image_File.cdi [Write Speed] [Burner index]")
+  print ("Usage: " + sys.argv[0] + " Image_File.cdi [Write Speed] [/path/to/burner]")
   print ("Acceptable image formats are Discjuggler (CDI), ISO, and BIN/CUE.")
   print ("Write speed and burner path are optional. If omitted, 2x speed and the first burner are used.")
-  print ("The burner index is found by running 'cdrecord -scanbus'")
+  print ("The burner path can be found by running 'wodim --devices', it should be like /dev/sdc0")
 
 # Asks user a yes / no question and quits if the user says no. Default question formatted to fit below a "WARNING: ... " string
 def ask_for_continue(question = "         Would you like to continue (Y/n)? "):
@@ -44,9 +44,10 @@ except IndexError:
 
 # Drive index
 try:
-  drive_index = sys.argv[3]
+  drive_path = sys.argv[3]
 except IndexError:
-  drive_index = 0
+  # TODO: Actually query wodim to get this value
+  drive_path = "/dev/scd0"
 
 # Burn Speed
 try:
@@ -139,7 +140,7 @@ if input_ext == "cdi":
       index += 1
       
     # Build options list for cdrecord
-    cdrecord_call = ["cdrecord", "-dev=" + str(drive_index), "gracetime=2", "-v", "driveropts=burnfree", "speed=" + str(burn_speed)]
+    cdrecord_call = ["cdrecord", "-dev=" + str(drive_path), "gracetime=2", "-v", "driveropts=burnfree", "speed=" + str(burn_speed)]
     if s == session_data[-1]:
       cdrecord_call.append("-eject")
     else:
