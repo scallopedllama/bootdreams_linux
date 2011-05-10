@@ -114,8 +114,6 @@ if input_ext == "cdi":
   index = 1
   for s in session_data:
     # TODO: Fill in these variables: DRIE, SPEED
-    # TODO: Eject after last session
-    # TODO: windows version doesn't put multi on the last session
     SPEED=""
     DRIVE=""
     cdrecord_opts = []
@@ -129,7 +127,11 @@ if input_ext == "cdi":
       index += 1
       
     # Call cdrecord
-    cdrecord_call = ["cdrecord", "-dev=" + DRIVE, "gracetime=2", "-v", "driveropts=burnfree", "speed=" + SPEED, "-multi"]
+    cdrecord_call = ["cdrecord", "-dev=" + DRIVE, "gracetime=2", "-v", "driveropts=burnfree", "speed=" + SPEED]
+    if s == session_data[-1]:
+      cdrecord_call.append("-eject")
+    else:
+      cdrecord_call.append("-multi")
     if "-xa" in cdrecord_opts or "-data" in cdrecord_opts:
       cdrecord_call.append("-tao")
     else:
