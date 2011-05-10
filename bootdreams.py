@@ -78,4 +78,12 @@ if input_ext == "cdi":
         print("ERROR: Unsupported session type " + t + ". Only Mode1/2048, Mode2/2336, and Audio/2352 are supported.")
         exit(1)
   
+  # data/data image with CDDA
+  if session_data[0] == ["Mode2/2336", "Audio/2352"]:
+    print("Warning: CDRecord cannot properly burn a data/data DiscJuggler image with CDDA.")
+    print("         You can continuing anyway though it may be a coaster if there is very little space left in the image.")
+    to_continue = string.lower(raw_input("         Would you like to continue (Y/n)? "))
+    if to_continue != "" and to_continue[0] == 'n':
+      exit(1)
+      
   
