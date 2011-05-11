@@ -89,7 +89,7 @@ input_ext = string.lower(input_image[-3:])
 
 # CDI FILE HANDLING
 if input_ext == "cdi":
-  print ("Going to burn DiscJuggler image " + input_image + " at " + burn_speed + "x on burner at " + drive_path)
+  print ("Going to burn DiscJuggler image " + input_image + " at " + str(burn_speed) + "x on burner at " + drive_path)
   # Get information about this cdi file
   cdi_info = subprocess.check_output(["cdirip", input_image, "-info"])
   
@@ -174,12 +174,12 @@ if input_ext == "cdi":
   
   
   
-elif input_ext = "iso":
+elif input_ext == "iso":
   # TODO: Isos have checkbox for multisesion and menu option for record mode: mode1 or mode 2 form 1
   cdrecord_call = ['cdrecord', 'dev=' + str(drive_path), 'gracetime=2', '-v', 'driveropts=burnfree', 'speed=' + str(burn_speed), '-eject', '-tao']
-  if iso_multi = True:
+  if iso_multi == True:
     cdrecord_call += ['-multi']
-  if iso_mode1 = True:
+  if iso_mode1 == True:
     cdrecord_call += ['-data']
   else:
     cdrecord_call += ['-xa']
