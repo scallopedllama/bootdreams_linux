@@ -112,8 +112,8 @@ if input_ext == "cdi":
   # Unsupported session type
   for s in session_data:
     for t in s:
-      if not t in ["Mode1/2048", "Mode2/2336", "Audio/2352"]:
-        print ("ERROR: Unsupported session type " + t + ". Only Mode1/2048, Mode2/2336, and Audio/2352 are supported.")
+      if not t in ["Mode1/2048", "Mode2/2336", "Mode2/2352", "Audio/2352"]:
+        print ("ERROR: Unsupported session type " + t + ". Only Mode1/2048, Mode2/2336, Mode2/2352, and Audio/2352 are supported.")
         exit(1)
   
   # data/data image with CDDA
@@ -147,7 +147,7 @@ if input_ext == "cdi":
     for t in s:
       if t == "Mode1/2048":
         cdrecord_opts += ["-data", "/tmp/bootdreams/tdata" + str(index).zfill(2) + ".iso"]
-      elif t == "Mode2/2336":
+      elif t == "Mode2/2336" or t == "Mode2/2352":
         cdrecord_opts += ["-xa", "/tmp/bootdreams/tdata" + str(index).zfill(2) + ".iso"]
       elif t == "Audio/2352":
         cdrecord_opts += ["-audio", "/tmp/bootdreams/taudio" + str(index).zfill(2) + ".wav"]
