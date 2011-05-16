@@ -24,8 +24,8 @@ import re
 # Oddly enough, wodim returns an error code if you have a burner but returns 0 if you don't.
 def query_burners():
   try:
-    subprocess.check_output(['wodim', '--devices'], stderr=subprocess.STDOUT)
-    return []
+    output = subprocess.Popen(['wodim', '--devices'], stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()[0]
+    return re.findall("dev='(\S*)'", output)
   except subprocess.CalledProcessError, (exception):
     return re.findall("dev='(\S*)'", exception.output)
 
@@ -91,7 +91,7 @@ input_ext = string.lower(input_image[-3:])
 if input_ext == "cdi":
   print ("Going to burn DiscJuggler image " + input_image + " at " + str(burn_speed) + "x on burner at " + drive_path)
   # Get information about this cdi file
-  cdi_info = subprocess.check_output(["cdirip", input_image, "-info"])
+  cdi_info = subprocess.Popen(["cdirip", input_image, "-info"], stdout=subprocess.PIPE).communicate()[0]
   
   # Make a list containing lists of track types for each session.
   # First dimension is Session number, second is Track number
