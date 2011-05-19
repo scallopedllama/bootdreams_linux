@@ -163,15 +163,15 @@ void ConvertToIeeeExtended(double num, char *bytes)
                 expon = 0;
             }
             expon |= sign;
-            fMant = ldexp(fMant, 32);          
-            fsMant = floor(fMant); 
+            fMant = ldexp(fMant, 32);
+            fsMant = floor(fMant);
             hiMant = FloatToUnsigned(fsMant);
-            fMant = ldexp(fMant - fsMant, 32); 
-            fsMant = floor(fMant); 
+            fMant = ldexp(fMant - fsMant, 32);
+            fsMant = floor(fMant);
             loMant = FloatToUnsigned(fsMant);
         }
     }
-    
+
     bytes[0] = expon >> 8;
     bytes[1] = expon;
     bytes[2] = hiMant >> 24;

@@ -72,14 +72,14 @@ Data output format:
 Audio output format:
 
 -wav     save audio tracks as WAV (default)
--raw     save audio tracks as RAW ("LSB first" format)
--swap    swap audio tracks while saving ("MSB first" format, for cdrecord)
--cda     save audio tracks as CDA ("MSB first", for cdrecord too)
--aiff    save audio tracks as AIFF ("MSB first")
+-raw     save audio tracks as RAW (little endian)
+-swap    swap audio tracks while saving (big endian format, for cdrecord)
+-cda     save audio tracks as CDA (big endian, for cdrecord too)
+-aiff    save audio tracks as AIFF (big endian)
 
 Track cutting:
 
--cut     cuts last 2 sectors of first track only
+-cut     cuts last 2 sectors of first track only (default)
 -cutall  cuts last 2 sectors of every track (can be combined with -cut)
 -full    save full Data tracks (i.e. do not cut automatically - see below)
 -pregap  extract pregap area and append to the end of previous track
@@ -252,7 +252,7 @@ can be directly loaded with CDR-Win.
 
  TDisc.cue (TData01.iso)
 
-  or 
+  or
 
  TDisc.cue (TAudio01.wav, TAudio02.wav...)
 
@@ -522,11 +522,11 @@ which is freely available at: http://www.bloodshed.net
   - Added support for CDI 3.5.826+ images
 
  0.6b (2001/12/07)
- 
+
   - Fixed bug in 0.6a causing some old images (3.0, 2.0) not being recognized
 
  0.6a (2001/11/29)
- 
+
   - Fixed bug with some DiscJuggler 3.5 images (extracted 1st session only)
 
  0.6 (2001/09/07)
@@ -545,7 +545,7 @@ which is freely available at: http://www.bloodshed.net
   - Switched to Bloodshed Dev-C++ free compiler (tiny executable size!)
 
  0.5a (2001/02/13)
- 
+
   - Fixed stupid bug in audio swap routine
 
  0.5 (2001/02/05)
