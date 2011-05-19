@@ -155,7 +155,7 @@ if input_ext == "cdi":
       
     # Build options list for cdrecord
     cdrecord_call = ["cdrecord", "-dev=" + str(drive_path), "gracetime=2", "-v", "driveropts=burnfree", "speed=" + str(burn_speed)]
-    if s == session_data[-1]:
+    if index == len(session_data) + 1:
       cdrecord_call.append("-eject")
     else:
       cdrecord_call.append("-multi")
