@@ -1,3 +1,8 @@
 *~
-*.cdi
-*.CDI
+*.[cC][dD][iI]
+*.[nN][rR][gG]
+*.[iI][sS][oO]
+*.[wW][aA][vV]
+*.[bB][iI][nN]
+*.[cC][uU][eE]
+*.o
