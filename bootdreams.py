@@ -4,7 +4,7 @@
 # Licensed under the GPL
 version = 0.1
 print ("Bootdreams Python Version " + str(version))
-
+do_burn = True
 
 # Import relevant modules
 import sys
@@ -119,8 +119,16 @@ if input_ext == "cdi":
   # data/data image with CDDA
   if session_data[0] == ["Mode2/2336", "Audio/2352"]:
     print ("Warning: CDRecord cannot properly burn a data/data DiscJuggler image with CDDA.")
-    print ("         You can continuing anyway though it may be a coaster if there is very little space left in the image.")
+    print ("         You can continue anyway though it may be a coaster if there is very little space left in the image.")
     ask_for_continue()
+  
+  # Check for image that doesn't appear to burn properly to warn the user
+  if session_data == [["Mode2/2336"], ["Mode2/2336"]]:
+    print ("Warning: Image contains only two Mode2/2336 tracks. I have never been able to get this type of image to burn properly.")
+    print ("         We have our best men on the issue so keep checking for a new version with a fix.")
+    print ("         You can continue anyway though it will probably be a coaster. If not, please let me know.")
+    ask_for_continue()
+  
   
   # Delete the temp dir if it already exists and create it again
   print ("Clearing Temp Directory")
@@ -139,7 +147,8 @@ if input_ext == "cdi":
     exit(1)
   
   # Burn the CD
-  print ("Burning CD")
+  if do_burn:
+    print ("Burning CD")
   print ("")
   index = 1
   for s in session_data:
@@ -166,11 +175,12 @@ if input_ext == "cdi":
     cdrecord_call += cdrecord_opts
     
     # Burn the session
-    if subprocess.call(cdrecord_call) != 0:
+    if do_burn and subprocess.call(cdrecord_call) != 0:
       print ("ERROR: CDRecord failed. Please check its output for mroe information.")
       exit(1)
   
-  print ("Image burn complete.")
+  if do_burn:
+    print ("Image burn complete.")
   
   
   
