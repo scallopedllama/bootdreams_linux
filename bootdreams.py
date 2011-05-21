@@ -2,7 +2,7 @@
 # Bootdreams python
 # Written by Joe Balough (sl)
 # Licensed under the GPL
-version = 0.1
+version = 0.2
 print ("Bootdreams Python Version " + str(version))
 do_burn = True
 
