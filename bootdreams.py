@@ -122,14 +122,6 @@ if input_ext == "cdi":
     print ("         You can continue anyway though it may be a coaster if there is very little space left in the image.")
     ask_for_continue()
   
-  # Check for image that doesn't appear to burn properly to warn the user
-  if session_data == [["Mode2/2336"], ["Mode2/2336"]]:
-    print ("Warning: Image contains only two Mode2/2336 tracks. I have never been able to get this type of image to burn properly.")
-    print ("         We have our best men on the issue so keep checking for a new version with a fix.")
-    print ("         You can continue anyway though it will probably be a coaster. If not, please let me know.")
-    ask_for_continue()
-  
-  
   # Delete the temp dir if it already exists and create it again
   print ("Clearing Temp Directory")
   if os.path.isdir('/tmp/bootdreams'):
