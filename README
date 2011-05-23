@@ -1,0 +1,31 @@
+Bootdreams dot py   Version 0.3   (less stable with Nero support)
+(c) 2011 Joe Balough (scallopedllama at gmail.com)
+https://github.com/scallopedllama/bootdreams_linux
+Licensed under the GNU GPL v. 3 or later
+
+Bootdreams dot py is a python re-write of the windows tool bootdreams used to burn CDs
+for use with the Sega Dreamcast console. Bootdreams is strictly intended for homebrew and educational
+purposes and is not to be used for piracy. It uses the tools cdirip and nerorip to extract track data
+from CDI and NRG images then uses cdrecord to burn that track data to a CD.
+
+The curent version of bootdreams.py is only capable of burning Nero and Discjuggler images. It does nothing
+special to make them work for the Dreamcast, relying on the disc images being "selfbooting" to accomplish that.
+As such, for now bootdreams.py is simply a CDI / NRG image burning tool.
+
+Bootdreams.py depends on cdirip and nerorip to properly burn those types of images.
+For your convenience, they are provided with this program and to install them, all you need to do is run
+  $ make
+and then
+  $ make install 
+as a superuser from the root bootdreams directory.
+
+Future versions of bootdreams.py will hopefully have the following features:
+ - Automatic detection of non-selfbooting images to make the selfbooting
+ - Support for ISO and BIN/CUE images where they are made selfbooting
+ - Support for burning folders and making that image selfbooting
+ - Support for Alcohol 120% image format (Will take a while, will have to write a tool like nerorip)
+ 
+My tests of Bootdreams.py have produced no failed burns with the current version.
+If you come across an image that will not burn properly, please report it to the issues queue:
+  https://github.com/scallopedllama/bootdreams_linux
+  
