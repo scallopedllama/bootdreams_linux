@@ -1,8 +1,8 @@
 #!/usr/bin/python2
 # Bootdreams python
-# Written by Joe Balough (sl)
+# Written by Joe Balough (sallopedllama at gmail.com)
 # Licensed under the GPL
-version = 0.2
+version = 0.3
 print ("Bootdreams Python Version " + str(version))
 do_burn = True
 
@@ -87,11 +87,24 @@ input_ext = string.lower(input_image[-3:])
 
 
 
-# CDI FILE HANDLING
-if input_ext == "cdi":
-  print ("Going to burn DiscJuggler image " + input_image + " at " + str(burn_speed) + "x on burner at " + drive_path)
-  # Get information about this cdi file
-  cdi_info = subprocess.Popen(["cdirip", input_image, "-info"], stdout=subprocess.PIPE).communicate()[0]
+# CDI AND NRG FILE HANDLING
+if input_ext == "cdi" or input_ext == "nrg":
+  # Set some CDI / NRG specific options here
+  
+  # Default for discjuggler
+  image_type = "DiscJuggler"
+  image_info_call = ["cdirip", input_image, "-info"]
+  
+  # Special case for nero
+  if input_ext == "nrg":
+    image_type = "Nero"
+    image_info_call = ["nerorip", "-i", input_image]
+  
+  # Print some helpful information
+  print ("Going to burn " + image_type + " image " + input_image + " at " + str(burn_speed) + "x on burner at " + drive_path)
+  
+  # Get information about this image file
+  image_info = subprocess.Popen(image_info_call, stdout=subprocess.PIPE).communicate()[0]
   
   # Make a list containing lists of track types for each session.
   # First dimension is Session number, second is Track number
@@ -99,15 +112,15 @@ if input_ext == "cdi":
   
   print ("Getting Session and Track information")
   
-  # Split the cdi_info string by the Session i has d track(s) string. Discard the first because it offers no data
-  for i in re.split('Session \d+ has \d+ track\(s\)', cdi_info)[1:]:
+  # Split the image_info string by the Session i has d track(s) string. Discard the first because it offers no data
+  for i in re.split('Session \d+ has \d+ track\(s\)', image_info)[1:]:
     # Get all the track types in a list and append it to the list of session data
     session_data.append(re.findall('Type: (\S*)', i))
   
   # Check for situations to warn the user about:
   # More than 2 sessions:
   if len(session_data) > 2:
-    print ("Warning: CDI image has more than 2 sessions. Continuing anyway though this is untested.")
+    print ("Warning: Image has more than 2 sessions. Continuing anyway though this is untested.")
   
   # Unsupported session type
   for s in session_data:
@@ -128,14 +141,30 @@ if input_ext == "cdi":
     shutil.rmtree('/tmp/bootdreams', True)
   os.mkdir('/tmp/bootdreams')
   
-  # Rip the CDI
-  print ("Ripping CDI")
+  # Rip the Image
+  print ("Ripping " + input_ext + " image")
   print ("")
-  rip_options = "-iso"
-  if session_data[0][0] != "Audio/2352":
-    rip_options += " -cut -cutall"
-  if subprocess.call(["cdirip", input_image, "/tmp/bootdreams", rip_options]) != 0:
-    print ("ERROR: Cdirip failed to extract image data. Please check its output for more information.")
+  
+  # The last version (which did not fail to burn any images for me) did this bit wrong and only -iso was ever passed to cdirip.
+  # It never got the -cut and -cutall options which together don't work the way the readme says they should.
+  # Just going to make it not -cutall and fix it if a user tells me they had a bad burn that would have been fixed by it
+  rip_options = []
+  if input_ext == "cdi":
+    rip_options = ["cdirip", input_image, "/tmp/bootdreams", "-iso"]
+    if session_data[0][0] != "Audio/2352":
+      rip_options += ["-cut"]
+    else:
+      rip_options += ["-full"]
+  else:
+    rip_options = ["nerorip"]
+    if session_data[0][0] != "Audio/2352":
+      rip_options += ["--trim"]
+    else:
+      rip_options += ["--full"]
+    rip_options += [input_image, "/tmp/bootdreams"]
+    
+  if subprocess.call(rip_options) != 0:
+    print ("ERROR: " + input_ext + "rip failed to extract image data. Please check its output for more information.")
     exit(1)
   
   # Burn the CD
@@ -166,6 +195,9 @@ if input_ext == "cdi":
       cdrecord_call.append("-dao")
     cdrecord_call += cdrecord_opts
     
+    if not do_burn:
+      print(cdrecord_call)
+    
     # Burn the session
     if do_burn and subprocess.call(cdrecord_call) != 0:
       print ("ERROR: CDRecord failed. Please check its output for mroe information.")
@@ -173,8 +205,8 @@ if input_ext == "cdi":
   
   if do_burn:
     print ("Image burn complete.")
-  
-  
+    
+    
   
 elif input_ext == "iso":
   # TODO: Isos have checkbox for multisesion and menu option for record mode: mode1 or mode 2 form 1
