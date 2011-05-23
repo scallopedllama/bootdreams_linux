@@ -35,4 +35,4 @@ mrproper: clean
 
 install: all
 	${CP} ${OUTPUT} ${DESTDIR}/usr/bin                         # Line 25
-	${CP} ${HEADERS} ${DESTDIR}/usr/include/cdirip                # Line 26
+#	${CP} ${HEADERS} ${DESTDIR}/usr/include/cdirip                # Line 26
