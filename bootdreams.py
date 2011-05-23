@@ -17,7 +17,7 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 version = 0.3
-print ("Bootdreams Python Version " + str(version))
+print ("Bootdreams dot py   Version " + str(version))
 do_burn = True
 
 # Import relevant modules
