@@ -1,7 +1,21 @@
 #!/usr/bin/python2
-# Bootdreams python
-# Written by Joe Balough (sallopedllama at gmail.com)
-# Licensed under the GPL
+
+#     Bootdreams python
+#     Written by Joe Balough (sallopedllama at gmail.com)
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 version = 0.3
 print ("Bootdreams Python Version " + str(version))
 do_burn = True
@@ -31,7 +45,7 @@ def query_burners():
 
 # Help printing function
 def print_help():
-  print ("Usage: " + sys.argv[0] + " Image_File.cdi [Write Speed] [/path/to/burner]")
+  print ("Usage: " + sys.argv[0] + " Image_File [Write Speed] [/path/to/burner]")
   print ("Acceptable image formats are Discjuggler (CDI), ISO, and BIN/CUE.")
   print ("Write speed and burner path are optional. If omitted, lowest speed and the burner at " + drive_path + " is used.")
   print ("All burner paths can be found by running 'wodim --devices'.")
