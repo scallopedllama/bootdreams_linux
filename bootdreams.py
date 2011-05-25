@@ -309,6 +309,14 @@ elif input_ext == "bin" or input_ext == "cue":
   #  print ("ERROR: bchunk failed. Please check its output for more information.")
   #  exit(1)
   
+  # NOTE: From bootdreams:
+  #       The dummy file can be an audio dummy or a data dummy. If you're burning CDDA then a data dummy is created, otherwise a audio dummy is created.
+  #       So I need to see if there are any audio tracks in the cue file. if there are, use data dummy. otherwise use audio dummy.
+  # TODO: Strip the burning bit out of the nrg/cdi support and make it a separate function that I can call here too.
+  #       Thinking I might want to make it accept a list of lists of lists like [ [ [TrackType, DataLocation], [TrackType, DataLocation] ], [ .. Session 2 data], ...]
+  #       Where each track data is a list containing its type and the location of its data (since bchunk and cdi/nerorip output differently
+  
+  
 elif input_ext == "iso":
   
   # TODO: Isos have checkbox for multisesion and menu option for record mode: mode1 or mode 2 form 1
