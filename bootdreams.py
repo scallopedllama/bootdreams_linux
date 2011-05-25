@@ -142,12 +142,56 @@ avail_tools += check_prog("nerorip", "Nero")
 avail_tools += check_prog("cdirip", "DiscJugler")
 avail_tools += check_prog("bchunk", "BIN/CUE")
 
-
 # Make sure file exists
 if not os.path.isfile(input_image):
   print ("ERROR: File not found.")
   print_help()
   sys.exit(1)
+
+
+# Takes a list of lists representing track data and burns them to a CD-R
+# @param session_data: list of lists
+#   The first list is session, second is track containing track type.
+# @param track_dirs
+#   A list of files to burn indexed by track number
+def burn_tracks (session_data, track_dirs):
+  # Burn the CD
+  if do_burn:
+    print ("Burning CD")
+  print ("")
+  index = 1
+  for s in session_data:
+    cdrecord_opts = []
+    for t in s:
+      if t == "Mode1/2048":
+        cdrecord_opts += ["-data"]
+      elif t == "Mode2/2336" or t == "Mode2/2352":
+        cdrecord_opts += ["-xa"]
+      elif t == "Audio/2352":
+        cdrecord_opts += ["-audio"]
+      cdrecord_opts += track_dirs[index]
+      index += 1
+    
+    # Build options list for cdrecord
+    cdrecord_call = ["cdrecord", "-dev=" + str(drive_path), "gracetime=2", "-v", "driveropts=burnfree", "speed=" + str(burn_speed)]
+    if index == len(session_data) + 1:
+      cdrecord_call.append("-eject")
+    else:
+      cdrecord_call.append("-multi")
+    if "-xa" in cdrecord_opts or "-data" in cdrecord_opts:
+      cdrecord_call.append("-tao")
+    else:
+      cdrecord_call.append("-dao")
+    cdrecord_call += cdrecord_opts
+    
+    if not do_burn:
+      print(cdrecord_call)
+    
+    # Burn the session
+    if do_burn and subprocess.call(cdrecord_call) != 0:
+      print ("ERROR: CDRecord failed. Please check its output for more information.")
+      exit(1)
+      
 
 # Convert extension to lower case to properly handle it
 input_ext = string.lower(input_image[-3:])
@@ -200,6 +244,16 @@ if input_ext == "cdi" or input_ext == "nrg":
     print ("         You can continue anyway though it may be a coaster if there is very little space left in the image.")
     ask_for_continue()
   
+  # Prepare file list
+  track_dirs = []
+  index = 1
+  for s in session_data:
+    for t in s:
+      if t in ["Mode1/2048", "Mode2/2336", "Mode2/2352"]:
+        track_dirs += "/tmp/bootdreams/tdata" + str(index).zfill(2) + ".iso"
+      else:
+        track_dirs += "/tmp/bootdreams/taudio" + str(index).zfill(2) + ".iso"
+  
   # Prepare the temp directory
   prepare_temp()
   
@@ -229,41 +283,7 @@ if input_ext == "cdi" or input_ext == "nrg":
     print ("ERROR: " + input_ext + "rip failed to extract image data. Please check its output for more information.")
     exit(1)
   
-  # Burn the CD
-  if do_burn:
-    print ("Burning CD")
-  print ("")
-  index = 1
-  for s in session_data:
-    cdrecord_opts = []
-    for t in s:
-      if t == "Mode1/2048":
-        cdrecord_opts += ["-data", "/tmp/bootdreams/tdata" + str(index).zfill(2) + ".iso"]
-      elif t == "Mode2/2336" or t == "Mode2/2352":
-        cdrecord_opts += ["-xa", "/tmp/bootdreams/tdata" + str(index).zfill(2) + ".iso"]
-      elif t == "Audio/2352":
-        cdrecord_opts += ["-audio", "/tmp/bootdreams/taudio" + str(index).zfill(2) + ".wav"]
-      index += 1
-      
-    # Build options list for cdrecord
-    cdrecord_call = ["cdrecord", "-dev=" + str(drive_path), "gracetime=2", "-v", "driveropts=burnfree", "speed=" + str(burn_speed)]
-    if index == len(session_data) + 1:
-      cdrecord_call.append("-eject")
-    else:
-      cdrecord_call.append("-multi")
-    if "-xa" in cdrecord_opts or "-data" in cdrecord_opts:
-      cdrecord_call.append("-tao")
-    else:
-      cdrecord_call.append("-dao")
-    cdrecord_call += cdrecord_opts
-    
-    if not do_burn:
-      print(cdrecord_call)
-    
-    # Burn the session
-    if do_burn and subprocess.call(cdrecord_call) != 0:
-      print ("ERROR: CDRecord failed. Please check its output for more information.")
-      exit(1)
+  burn_tracks(session_data, track_dirs)
   
   if do_burn:
     print ("Image burn complete.")
@@ -305,17 +325,13 @@ elif input_ext == "bin" or input_ext == "cue":
   bchunk_call = ["bchunk", input_dir + "/" + bin_file, input_dir + "/" + cue_file, "/tmp/bootdreams/" + base_file]
   
   # Call bchunk
-  #if subprocess.call(bchunk_call) != 0:
-  #  print ("ERROR: bchunk failed. Please check its output for more information.")
-  #  exit(1)
+  if subprocess.call(bchunk_call) != 0:
+    print ("ERROR: bchunk failed. Please check its output for more information.")
+    exit(1)
   
-  # NOTE: From bootdreams:
-  #       The dummy file can be an audio dummy or a data dummy. If you're burning CDDA then a data dummy is created, otherwise a audio dummy is created.
-  #       So I need to see if there are any audio tracks in the cue file. if there are, use data dummy. otherwise use audio dummy.
-  # TODO: Strip the burning bit out of the nrg/cdi support and make it a separate function that I can call here too.
-  #       Thinking I might want to make it accept a list of lists of lists like [ [ [TrackType, DataLocation], [TrackType, DataLocation] ], [ .. Session 2 data], ...]
-  #       Where each track data is a list containing its type and the location of its data (since bchunk and cdi/nerorip output differently
-  
+  # The dummy file can be an audio dummy or a data dummy. If you're burning CDDA then a data dummy is created, otherwise a audio dummy is created.
+  # So see if there are any audio tracks in the cue file. if there are, use data dummy. otherwise use audio dummy.
+  # NOTE FOR FUTURE: This isn't going to nearly as easy as I originally thought. There is some odd bin hacking to be done so I'm not sure this will all be possible...
   
 elif input_ext == "iso":
   
