@@ -1,0 +1,3 @@
+[submodule "tools/nerorip_src"]
+	path = tools/nerorip_src
+	url = git@github.com:scallopedllama/nerorip.git
