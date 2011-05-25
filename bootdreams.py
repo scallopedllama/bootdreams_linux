@@ -46,7 +46,7 @@ def query_burners():
 # Help printing function
 def print_help():
   print ("Usage: " + sys.argv[0] + " Image_File [Write Speed] [/path/to/burner]")
-  print ("Acceptable image formats are Discjuggler (CDI), ISO, and BIN/CUE.")
+  print ("Acceptable image formats are Discjuggler (CDI), Nero (nrg), ISO, and BIN/CUE.")
   print ("Write speed and burner path are optional. If omitted, lowest speed and the burner at " + drive_path + " is used.")
   print ("All burner paths can be found by running 'wodim --devices'.")
 
@@ -56,6 +56,12 @@ def ask_for_continue(question = "         Would you like to continue (Y/n)? "):
   if to_continue != "" and to_continue[0] == 'n':
     exit(1)
 
+# Delete the temp dir if it already exists and create it again
+def prepare_temp():
+  print ("Clearing Temp Directory")
+  if os.path.isdir('/tmp/bootdreams'):
+    shutil.rmtree('/tmp/bootdreams', True)
+  os.mkdir('/tmp/bootdreams')
 
 
 # Drive index
@@ -70,7 +76,7 @@ except IndexError:
 
 # The file to process
 try:
-  input_image = sys.argv[1]
+  user_input = sys.argv[1]
 except IndexError:
   print ("ERROR: No File Specified.")
   print_help()
@@ -85,9 +91,57 @@ except IndexError:
 
 
 # See if user was trying to get help
-if string.lower(input_image) == "help" or string.lower(input_image) == "--help" or string.lower(input_image) == "-h":
+if string.lower(user_input) == "help" or string.lower(user_input) == "--help" or string.lower(user_input) == "-h":
   print_help()
   sys.exit(1)
+
+# Split the user input into path and filename
+# input_image is always exactly what the user passed
+split_path = os.path.split(user_input)
+input_dir  = split_path[0]
+input_file = split_path[1]
+input_image = user_input
+
+# See what programs the user has installed to determine what can be handled
+avail_tools = []
+
+# A tool borrowed from Jay on SackOverflow: http://stackoverflow.com/questions/377017/test-if-executable-exists-in-python
+# Takes a program name and attempts to determine if it exists either in the current directory or in the PATH.
+# Returns the program full location if it exists, None if it doesn't.
+def which(program):
+  def is_exe(fpath):
+    return os.path.exists(fpath) and os.access(fpath, os.X_OK)
+
+  fpath, fname = os.path.split(program)
+  if fpath:
+    if is_exe(program):
+      return program
+  else:
+    for path in os.environ["PATH"].split(os.pathsep):
+      exe_file = os.path.join(path, program)
+      if is_exe(exe_file):
+        return exe_file
+  return None
+
+# Simple function to check for existence of tools.
+# Sees if the file exists and is executable and returns the program name in a list if it is.
+# If it is not, it tells the user about it and returns an empty list
+def check_prog(prog, img_format):
+  if which(prog):
+    return [prog]
+  else:
+    print    ("Warning: " + prog + " tool not installed. Will not be able to burn " + img_format + " images.")
+    if prog == "cdirip" or prog == "nerorip":
+      print ("         Run make && sudo make install in the root bootdreams.py folder to install them from the included source.")
+    else:
+      print ("         Please install the " + prog + " program from your distribution's repositories")
+    return []
+
+#Fill in the list of available tools
+avail_tools += check_prog("nerorip", "Nero")
+avail_tools += check_prog("cdirip", "DiscJugler")
+avail_tools += check_prog("bchunk", "BIN/CUE")
+
 
 # Make sure file exists
 if not os.path.isfile(input_image):
@@ -97,9 +151,6 @@ if not os.path.isfile(input_image):
 
 # Convert extension to lower case to properly handle it
 input_ext = string.lower(input_image[-3:])
-
-
-
 
 # CDI AND NRG FILE HANDLING
 if input_ext == "cdi" or input_ext == "nrg":
@@ -149,11 +200,8 @@ if input_ext == "cdi" or input_ext == "nrg":
     print ("         You can continue anyway though it may be a coaster if there is very little space left in the image.")
     ask_for_continue()
   
-  # Delete the temp dir if it already exists and create it again
-  print ("Clearing Temp Directory")
-  if os.path.isdir('/tmp/bootdreams'):
-    shutil.rmtree('/tmp/bootdreams', True)
-  os.mkdir('/tmp/bootdreams')
+  # Prepare the temp directory
+  prepare_temp()
   
   # Rip the Image
   print ("Ripping " + input_ext + " image")
@@ -214,15 +262,55 @@ if input_ext == "cdi" or input_ext == "nrg":
     
     # Burn the session
     if do_burn and subprocess.call(cdrecord_call) != 0:
-      print ("ERROR: CDRecord failed. Please check its output for mroe information.")
+      print ("ERROR: CDRecord failed. Please check its output for more information.")
       exit(1)
   
   if do_burn:
     print ("Image burn complete.")
     
     
+elif input_ext == "bin" or input_ext == "cue":
+  # Run bchunk on this file to get its iso then let the iso burning section handle it
+  print ("Converting a BIN/CUE image to ISO")
+ 
+  prepare_temp()
+  
+  # Find both the BIN and CUE file
+  bin_file = input_file
+  cue_file = input_file
+  base_file = input_file[:-3]
+  
+  # Scans the input_dir for a file matching the passed pattern concatenated on to the end of the base_file
+  def find_file(pattern):
+    for f in os.listdir(input_dir):
+      if re.match(base_file + pattern, f):
+        return f
+  
+  # Find the matching pair to this bin / cue file
+  if input_ext == "bin":
+    cue_file = find_file("[cC][uU][eE]")
+  else:
+    bin_file = find_file("[bB][iI][nN]")
+  
+  # Check the cue file for session information and build a list
+  session_data = []
+  cue = open(input_dir + "/" + cue_file, "r")
+  for line in cue:
+    t = re.match(r" *TRACK \d+ (\w+/\d+)", line)
+    if t:
+      session_data += [t.group(1)]
+  print session_data
+  
+  # Build call to bchunk
+  bchunk_call = ["bchunk", input_dir + "/" + bin_file, input_dir + "/" + cue_file, "/tmp/bootdreams/" + base_file]
+  
+  # Call bchunk
+  #if subprocess.call(bchunk_call) != 0:
+  #  print ("ERROR: bchunk failed. Please check its output for more information.")
+  #  exit(1)
   
 elif input_ext == "iso":
+  
   # TODO: Isos have checkbox for multisesion and menu option for record mode: mode1 or mode 2 form 1
   cdrecord_call = ['cdrecord', 'dev=' + str(drive_path), 'gracetime=2', '-v', 'driveropts=burnfree', 'speed=' + str(burn_speed), '-eject', '-tao']
   if iso_multi == True:
@@ -232,3 +320,5 @@ elif input_ext == "iso":
   else:
     cdrecord_call += ['-xa']
   cdrecord_call += [input_image]
+  
+  print (cdrecord_call)
