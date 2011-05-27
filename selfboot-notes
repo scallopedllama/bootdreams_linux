@@ -1,0 +1,22 @@
+Seems general selfboot procedure should go as follows:
+Convert bin/cue to isos and audio files.
+  If there are audio files. make it a data/data selfbooting disc
+  otherwise make it an audio/data selfboot disc
+
+For audio/data discs:
+  1. Burn the raw audio track to the first session
+  2. Extract the iso(s)
+  3. Check for an IP.BIN.
+      If there is one, make sure it points to a file in the track
+      If there isn't any, Create a new one in the last (?) data track
+  4. Re-assemble iso(s) using -G ip.bin option
+  5. Burn second session
+
+For data/data discs:
+  1. Burn the audio tracks (may need to add a bunch of empty ones at the beginning? or check for them?)
+  2. Do 2 through 3 above
+  3. Generate a dummy file for the last data track ?
+  4. Re-assemble iso(s) using -G ip.bin option
+  5. Burn second session
+
+
